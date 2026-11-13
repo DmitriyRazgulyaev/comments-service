@@ -1,0 +1,66 @@
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: comments-service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d comments-service"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    command:
+      - /app/migrate
+      - -path=/app/migrations
+      - -direction=up
+
+    environment:
+      ENV_PATH: /app/config/.env
+
+    volumes:
+      - ./config/.env.docker:/app/config/.env:ro
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      ENV_PATH: /app/config/.env
+
+    volumes:
+      - ./config/.env.docker:/app/config/.env:ro
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:

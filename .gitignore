@@ -1,0 +1,9 @@
+config/.env
+config/.env.docker
+
+.idea/
+.vscode/
+.DS_Store
+
+*.log
+coverage.out
